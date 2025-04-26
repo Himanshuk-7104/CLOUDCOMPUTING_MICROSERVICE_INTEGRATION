@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Service</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h2 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="datetime-local"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .notification {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Student Notification Service</h2>
+        <form action="/send_notification" method="POST">
+            <div class="form-group">
+                <label for="student_name">Student Name:</label>
+                <input type="text" id="student_name" name="student_name">
+            </div>
+            <div class="form-group">
+                <label for="student_email">Student Email:</label>
+                <input type="email" id="student_email" name="student_email" required>
+            </div>
+            <div class="form-group">
+                <label for="email_subject">Email Subject:</label>
+                <input type="text" id="email_subject" name="email_subject" required>
+            </div>
+            <div class="form-group">
+                <label for="email_body">Email Body:</label>
+                <textarea id="email_body" name="email_body" rows="5" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="reminder_datetime">Set Reminder:</label>
+                <input type="datetime-local" id="reminder_datetime" name="reminder_datetime">
+            </div>
+            <div class="form-group">
+                <label for="reminder_subject">Reminder Subject:</label>
+                <input type="text" id="reminder_subject" name="reminder_subject">
+            </div>
+            <div class="form-group">
+                <label for="reminder_message">Reminder Message:</label>
+                <textarea id="reminder_message" name="reminder_message" rows="3"></textarea>
+            </div>
+            <button type="submit">Send Notification</button>
+        </form>
+
+        {% if email_sent is defined and email_sent %}
+        <div class="notification success">
+            Email sent successfully!
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

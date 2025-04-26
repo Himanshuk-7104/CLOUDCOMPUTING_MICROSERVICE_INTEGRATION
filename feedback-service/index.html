@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Feedback System</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: auto; }
+        h1, h2, h3 { color: #333; }
+        .container { display: flex; gap: 30px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 300px; }
+        ul { list-style: none; padding: 0; }
+        li { background-color: #f4f4f4; margin-bottom: 5px; padding: 8px; border-radius: 3px; }
+        li span { font-weight: bold; }
+        form label { display: block; margin-top: 10px; }
+        form input, form textarea, form button, form select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+        form button { background-color: #5cb85c; color: white; border: none; cursor: pointer; margin-top: 15px; }
+        form button:hover { background-color: #4cae4c; }
+        #feedback-list { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px; }
+        .feedback-item { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; background-color: #fafafa; }
+        .feedback-item p { margin: 5px 0; }
+        .feedback-item strong { color: #555; }
+        .error { color: red; font-weight: bold; margin-top: 10px; }
+        .success { color: green; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Student Performance Feedback</h1>
+
+    <div class="container">
+        <div class="col">
+            <h2>Students</h2>
+            <ul id="student-list"><li>Loading...</li></ul>
+            <button onclick="fetchStudents()">Refresh Students</button>
+
+            <h2>Mentors</h2>
+            <ul id="mentor-list"><li>Loading...</li></ul>
+            <button onclick="fetchMentors()">Refresh Mentors</button>
+        </div>
+
+        <div class="col">
+            <h2>Submit Feedback</h2>
+            <form id="feedback-form" onsubmit="submitFeedback(event)">
+                <label for="mentor-id">Your Mentor ID:</label>
+                <input type="text" id="mentor-id" name="mentor_id" required>
+
+                <label for="student-id-feedback">Student ID to give feedback for:</label>
+                <input type="text" id="student-id-feedback" name="student_id" required>
+
+                <label for="feedback-text">Feedback:</label>
+                <textarea id="feedback-text" name="feedback" rows="4" required></textarea>
+
+                <label for="highlights">Highlights (comma-separated):</label>
+                <input type="text" id="highlights" name="highlights">
+
+                <button type="submit">Submit Feedback</button>
+                <p id="submit-status" class=""></p>
+            </form>
+
+            <hr style="margin: 30px 0;">
+
+            <h2>View Student Feedback</h2>
+             <label for="student-id-view">Enter Student ID:</label>
+             <input type="text" id="student-id-view" placeholder="e.g., S101">
+             <button onclick="fetchStudentFeedback()">View Feedback</button>
+             <div id="feedback-list">
+                 <p>Enter a Student ID and click 'View Feedback'.</p>
+             </div>
+             <p id="view-status" class=""></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000'; // Your FastAPI backend URL
+
+        // --- Fetching and Displaying Lists ---
+
+        async function fetchStudents() {
+            const listElement = document.getElementById('student-list');
+            listElement.innerHTML = '<li>Loading...</li>';
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/students`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const students = await response.json();
+
+                if (students.length === 0) {
+                    listElement.innerHTML = '<li>No students found.</li>';
+                    return;
+                }
+
+                listElement.innerHTML = students.map(s => `
+                    <li>
+                        <span>ID:</span> ${s.student_id}<br>
+                        <span>Name:</span> ${s.name}<br>
+                        <span>Email:</span> ${s.email}<br>
+                        <span>Dept:</span> ${s.department}
+                    </li>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching students:', error);
+                listElement.innerHTML = '<li class="error">Failed to load students. Is the backend running?</li>';
+            }
+        }
+
+        async function fetchMentors() {
+            const listElement = document.getElementById('mentor-list');
+            listElement.innerHTML = '<li>Loading...</li>';
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/mentors`);
+                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const mentors = await response.json();
+
+                 if (mentors.length === 0) {
+                    listElement.innerHTML = '<li>No mentors found.</li>';
+                    return;
+                }
+
+                listElement.innerHTML = mentors.map(m => `
+                    <li>
+                        <span>ID:</span> ${m.mentor_id}<br>
+                        <span>Name:</span> ${m.name}<br>
+                        <span>Email:</span> ${m.email}<br>
+                        <span>Dept:</span> ${m.department}
+                    </li>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching mentors:', error);
+                listElement.innerHTML = '<li class="error">Failed to load mentors. Is the backend running?</li>';
+            }
+        }
+
+        // --- Feedback Submission ---
+
+        async function submitFeedback(event) {
+            event.preventDefault(); // Prevent default form submission
+            const form = document.getElementById('feedback-form');
+            const statusElement = document.getElementById('submit-status');
+            statusElement.textContent = 'Submitting...';
+            statusElement.className = ''; // Clear previous status classes
+
+            const formData = {
+                mentor_id: form.mentor_id.value,
+                student_id: form.student_id_feedback.value,
+                feedback: form.feedback_text.value,
+                highlights: form.highlights.value.split(',').map(h => h.trim()).filter(h => h) // Split by comma, trim whitespace, remove empty strings
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/mentor/feedback/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                const result = await response.json(); // Try parsing JSON regardless of status
+
+                if (!response.ok) {
+                    // Use detail from HTTPException if available, otherwise the generic message
+                    const errorMessage = result.detail || result.message || `HTTP error! status: ${response.status}`;
+                    throw new Error(errorMessage);
+                }
+
+                statusElement.textContent = result.message || 'Feedback submitted successfully!';
+                statusElement.className = 'success';
+                form.reset(); // Clear the form
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+                statusElement.textContent = `Error: ${error.message}`;
+                statusElement.className = 'error';
+            }
+        }
+
+         // --- Viewing Feedback ---
+
+        async function fetchStudentFeedback() {
+            const studentId = document.getElementById('student-id-view').value;
+            const listElement = document.getElementById('feedback-list');
+            const statusElement = document.getElementById('view-status');
+            statusElement.textContent = '';
+            statusElement.className = '';
+
+
+            if (!studentId) {
+                listElement.innerHTML = '<p>Please enter a Student ID.</p>';
+                return;
+            }
+
+            listElement.innerHTML = '<p>Loading feedback...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/student/${studentId}/feedbacks`);
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     const errorMessage = errorData.detail || `HTTP error! status: ${response.status}`;
+                     throw new Error(errorMessage);
+                }
+                const feedbacks = await response.json();
+
+                if (feedbacks.length === 0) {
+                    listElement.innerHTML = `<p>No feedback found for Student ID: ${studentId}.</p>`;
+                    return;
+                }
+
+                listElement.innerHTML = feedbacks.map(fb => `
+                    <div class="feedback-item">
+                        <p><strong>From Mentor:</strong> ${fb.mentor_name || fb.mentor_id}</p>
+                        <p><strong>Date:</strong> ${new Date(fb.date).toLocaleString()}</p>
+                        <p><strong>Feedback:</strong> ${fb.feedback}</p>
+                        ${fb.highlights && fb.highlights.length > 0 ? `<p><strong>Highlights:</strong> ${fb.highlights.join(', ')}</p>` : ''}
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error fetching feedback:', error);
+                listElement.innerHTML = ''; // Clear loading message
+                statusElement.textContent = `Error: ${error.message}`;
+                statusElement.className = 'error';
+            }
+        }
+
+
+        // --- Initial Load ---
+        // Fetch lists when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStudents();
+            fetchMentors();
+        });
+
+    </script>
+
+</body>
+</html>

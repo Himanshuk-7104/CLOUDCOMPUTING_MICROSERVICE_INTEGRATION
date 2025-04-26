@@ -1,0 +1,5 @@
+Flask==2.3.2
+supabase
+python-dotenv==1.0.1 
+PyOTP==2.8.0
+Flask-Mail==0.9.1

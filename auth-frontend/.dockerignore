@@ -1,0 +1,7 @@
+# auth-frontend/.dockerignore
+node_modules
+dist
+.env
+.git
+.gitignore
+npm-debug.log

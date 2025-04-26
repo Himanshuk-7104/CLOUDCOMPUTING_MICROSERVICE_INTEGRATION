@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+     
+    depends_on:
+      mongodb:
+        # Wait for MongoDB to be healthy before starting the web service
+        condition: service_healthy
+    networks:
+      - app-network
+    volumes:
+      # Mount code for development with --reload (optional)
+      - .:/app
+
+  mongodb:
+    # Pin to a specific major version for stability (e.g., 7.0)
+    image: mongo:7.0
+    ports:
+      # Map host port 27017 to container port 27017
+      - "27017:27017"
+    volumes:
+      # Persist MongoDB data using a named volume
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      # Check if MongoDB is ready
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s # Slightly increased start_period
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    # Define the named volume for MongoDB data persistence

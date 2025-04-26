@@ -1,0 +1,86 @@
+# AUTHRIZA/docker-compose.yml
+# Combined configuration for Login, Notification, and Feedback services
+
+services:
+  # --- Authentication Service ---
+  auth-backend:
+    build: ./auth-backend
+    container_name: auth_backend_service
+    restart: unless-stopped
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      PORT: 3001
+    networks:
+      - student-app-network # Use the common network
+
+  auth-frontend:
+    build: ./auth-frontend
+    container_name: auth_frontend_service
+    restart: unless-stopped
+    ports:
+      - "8080:80" # Login page accessible at http://localhost:8080
+    depends_on:
+      - auth-backend
+    networks:
+      - student-app-network # Use the common network
+
+  # --- Notification Service ---
+  notification-service:
+    build: ./notification-service
+    container_name: notification_service
+    restart: unless-stopped
+    ports:
+      - "5001:5000" # MFA API & Status page at http://localhost:5001
+    environment:
+      SMTP_SERVER: ${SMTP_SERVER}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD} # Ensure this is your App Password
+      SENDER_EMAIL: ${SENDER_EMAIL}
+    networks:
+      - student-app-network # Use the common network
+
+  # --- Feedback Service (NEW) ---
+  feedback-service:
+    build: ./feedback-service # Points to the new directory
+    container_name: feedback_service_container
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Feedback API/UI accessible at http://localhost:8000
+    environment:
+      # This URL uses the MongoDB service name defined below
+      - MONGODB_URL=mongodb://feedback-db:27017
+    depends_on:
+      feedback-db: # Depends on the MongoDB container
+        condition: service_healthy # Waits for MongoDB health check
+    networks:
+      - student-app-network # Use the common network
+    # Optional: Mount volume for live code reload during development
+    # volumes:
+    #   - ./feedback-service:/app
+
+  feedback-db:
+    image: mongo:7.0 # Using MongoDB image
+    container_name: feedback_db_container
+    restart: unless-stopped
+    # No ports exposed to host unless direct access needed for debugging
+    volumes:
+      - mongodb_data:/data/db # Persist MongoDB data
+    networks:
+      - student-app-network # Use the common network
+    healthcheck: # Checks if MongoDB is ready
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+# Define the common network
+networks:
+  student-app-network:
+    driver: bridge
+
+# Define the named volume for MongoDB data persistence
+volumes:
+  mongodb_data:
